@@ -21,3 +21,4 @@ sudo mariadb -p video_analytics < schema/002_user.sql
 If it fails, you fix the file, not the database manually.
 
 You should get comfortable destroying and recreating the database during early design. Databases are disposable; schema files are not.
+
