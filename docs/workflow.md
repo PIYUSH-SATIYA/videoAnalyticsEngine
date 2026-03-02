@@ -15,7 +15,7 @@ Typical loop:
 - Run it via terminal:
 
 ```bash
-psql -d your_db_name -f schema/001_init.sql
+sudo mariadb -p video_analytics < schema/002_user.sql
 ```
 
 If it fails, you fix the file, not the database manually.
