@@ -1,7 +1,13 @@
 -- 006_events.sql
 -- Immutable behavioral log
 
-CREATE TYPE event_type_enum AS ENUM (
+CREATE TABLE events (
+    event_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+
+    session_id BIGINT NOT NULL,
+    video_id BIGINT NOT NULL,
+
+    event_type ENUM (
     'play',
     'pause',
     'seek',
@@ -10,17 +16,9 @@ CREATE TYPE event_type_enum AS ENUM (
     'comment',
     'quality_change',
     'exit'
-);
+) NOT NULL,
 
-CREATE TABLE events (
-    event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    session_id UUID NOT NULL,
-    video_id UUID NOT NULL,
-
-    event_type event_type_enum NOT NULL,
-
-    event_timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    event_timestamp TIMESTAMP NOT NULL,
 
     playback_position_seconds INT
         CHECK (
@@ -28,7 +26,7 @@ CREATE TABLE events (
             OR playback_position_seconds >= 0
         ),
 
-    metadata JSONB,
+    metadata JSON,
 
     CONSTRAINT fk_events_session
         FOREIGN KEY (session_id)

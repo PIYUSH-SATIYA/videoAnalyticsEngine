@@ -4,4 +4,3 @@
 
 -- Tables will be added incrementally
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

@@ -2,13 +2,13 @@
 -- Session grouping table
 
 CREATE TABLE sessions (
-    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
-    user_id UUID NOT NULL,
-    device_id UUID NOT NULL,
+    user_id BIGINT NOT NULL,
+    device_id BIGINT NOT NULL,
 
-    started_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    ended_at   TIMESTAMP WITH TIME ZONE NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    ended_at   TIMESTAMP NOT NULL,
 
     CONSTRAINT fk_sessions_user
         FOREIGN KEY (user_id)

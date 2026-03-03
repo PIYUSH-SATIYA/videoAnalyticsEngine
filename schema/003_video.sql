@@ -1,24 +1,19 @@
 -- 003_video.sql
 -- Video content table
 
-CREATE TYPE video_visibility_enum AS ENUM (
-    'public',
-    'private',
-    'unlisted'
-);
-
 CREATE TABLE videos (
-    video_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    video_id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
-    uploader_id UUID NOT NULL,
+    uploader_id BIGINT NOT NULL,
 
     title TEXT NOT NULL,
     description TEXT,
     duration_seconds INT NOT NULL CHECK (duration_seconds > 0),
 
-    visibility video_visibility_enum NOT NULL DEFAULT 'public',
+    visibility ENUM('public', 'private', 'unlisted') NOT NULL DEFAULT 'public',
 
-    upload_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_videos_user
         FOREIGN KEY (uploader_id)
