@@ -90,4 +90,68 @@
 - Behavioral history
 - Event metadata
 
+# Session model
+
+- It represents a bounded interaction window between the user and the system
+
+### purpose 
+
+- To logically cluster the user activity by intervals of time.
+- to provide temporal structure above individual events
+
+### Attributes
+
+- session_id (system generated)
+- user_id (actor identity)
+- device_id (context)
+- started_at
+- ended_at
+
+### Invariants
+
+- a session belongs to one user only
+- a session belongs to one device only
+- no to sessions can be overlapping for a device
+
+### what this table will not store
+
+- individual events
+- video-level interactions
+
+# Event model
+
+- a single atomic behavioural action performed by the user
+
+### purpose
+
+- to record granular user behavior
+- to support behavioral analytics
+
+### Attributes
+
+- event_id (system generated)
+- session_id
+- user_id (denormalized intentionally)
+- video_id
+- event_type
+  - play
+  - pause
+  - seek
+- quality_change
+- exit
+- event_timestamp (wall clock time)
+- playback_position_seconds (video-relative time)
+- metadata (event-specific structured payload)
+
+### Design intents
+
+- This table is append only.
+- events are immutable
+- An analytics must originate from this table
+
+### what this table will not store
+
+- aggregate counts
+- any derived attributes
+- any stateful flags
 

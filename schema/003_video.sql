@@ -1,15 +1,27 @@
-CREATE TABLE videos (
-    video_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
-    uploader_id   BIGINT NOT NULL,
-    title         VARCHAR(255) NOT NULL,
-    description   TEXT,
-    duration_sec  INT NOT NULL,
-    visibility    ENUM('public', 'private', 'unlisted') NOT NULL DEFAULT 'private',
-    upload_time   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-- 003_video.sql
+-- Video content table
 
-    CONSTRAINT fk_videos_uploader
+CREATE TYPE video_visibility_enum AS ENUM (
+    'public',
+    'private',
+    'unlisted'
+);
+
+CREATE TABLE videos (
+    video_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    uploader_id UUID NOT NULL,
+
+    title TEXT NOT NULL,
+    description TEXT,
+    duration_seconds INT NOT NULL CHECK (duration_seconds > 0),
+
+    visibility video_visibility_enum NOT NULL DEFAULT 'public',
+
+    upload_timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+
+    CONSTRAINT fk_videos_user
         FOREIGN KEY (uploader_id)
         REFERENCES users(user_id)
         ON DELETE CASCADE
-        ON UPDATE CASCADE
-}
+);
