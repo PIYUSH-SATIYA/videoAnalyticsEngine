@@ -22,6 +22,7 @@ CREATE TABLE events (
 
     playback_position_seconds INT
         CHECK (
+
             playback_position_seconds IS NULL
             OR playback_position_seconds >= 0
         ),
