@@ -12,8 +12,8 @@ CREATE TABLE devices (
     'tablet',
     'tv'
     ) NOT NULL,
-    operating_system TEXT,
-    browser TEXT,
+    operating_system VARCHAR(63),
+    browser VARCHAR(63),
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

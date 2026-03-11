@@ -6,7 +6,7 @@ CREATE TABLE videos (
 
     uploader_id BIGINT NOT NULL,
 
-    title TEXT NOT NULL,
+    title VARCHAR(255) NOT NULL,
     description TEXT,
     duration_seconds INT NOT NULL CHECK (duration_seconds > 0),
 

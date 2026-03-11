@@ -4,9 +4,9 @@
 CREATE TABLE users (
     user_id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
-    name TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    phone TEXT,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(13),
 
     status ENUM('active', 'suspended', 'deleted') NOT NULL DEFAULT 'active',
 

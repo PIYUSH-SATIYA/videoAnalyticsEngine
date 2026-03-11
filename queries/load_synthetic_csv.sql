@@ -17,7 +17,7 @@ SET foreign_key_checks = 1;
 
 SET @max_user_id = NULL;
 
--- USERS CSV columns: user_id
+-- USERS CSV columns: user_id,dob
 LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/users.csv'
 INTO TABLE users
 FIELDS TERMINATED BY ','
@@ -25,12 +25,14 @@ OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 LINES
 (@user_id)
+-- (@user_id, @dob)
 SET
   user_id = @user_id,
   name = CONCAT('User ', @user_id),
   email = CONCAT('user', @user_id, '@example.com'),
   phone = NULL,
   status = 'active',
+  -- dob = @dob,
   created_at = NOW(),
   updated_at = NOW();
 
