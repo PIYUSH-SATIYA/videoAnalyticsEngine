@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Analytics Dashboard</title>
+    <meta name="description" content="Real-time streaming analytics dashboard for monitoring video performance, user engagement, and platform metrics.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══════════════ TOP NAVIGATION ═══════════════ -->
+    <nav class="top-nav" id="top-nav">
+        <div class="nav-left">
+            <div class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+            </div>
+            <h1 class="nav-title">Streaming Analytics Dashboard</h1>
+        </div>
+        <div class="nav-right">
+            <div class="date-filter" id="date-filter">
+                <button class="filter-btn active" data-range="24h">Last 24h</button>
+                <button class="filter-btn" data-range="7d">7 Days</button>
+                <button class="filter-btn" data-range="30d">30 Days</button>
+            </div>
+            <div class="nav-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Live</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════ ANALYTICS FILTERS ═══════════════ -->
+    <div class="analytics-filters" id="analytics-filters">
+        <div class="filters-inner">
+            <div class="filter-group">
+                <label class="filter-label" for="filter-device">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                    </svg>
+                    Device Type
+                </label>
+                <select id="filter-device" class="filter-select">
+                    <option value="all">All Devices</option>
+                    <option value="mobile">Mobile</option>
+                    <option value="desktop">Desktop</option>
+                    <option value="tablet">Tablet</option>
+                    <option value="smarttv">Smart TV</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="filter-category">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 11a9 9 0 0 1 9 9"/>
+                        <path d="M4 4a16 16 0 0 1 16 16"/>
+                        <circle cx="5" cy="19" r="1"/>
+                    </svg>
+                    Video Category
+                </label>
+                <select id="filter-category" class="filter-select">
+                    <option value="all">All Categories</option>
+                    <option value="drama">Drama</option>
+                    <option value="scifi">Sci-Fi</option>
+                    <option value="action">Action</option>
+                    <option value="documentary">Documentary</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="filter-time">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Time Range
+                </label>
+                <select id="filter-time" class="filter-select">
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                </select>
+            </div>
+            <button class="filter-apply-btn" id="filter-apply-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                Apply Filters
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════ MAIN LAYOUT (Content + Live Feed) ═══════════════ -->
+    <div class="dashboard-layout">
+
+        <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+        <main class="dashboard-main">
+
+            <!-- ─── Section 1: Platform Overview ─── -->
+            <section class="section" id="section-overview">
+                <div class="metric-cards">
+                    <div class="metric-card" id="card-users">
+                        <div class="metric-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-value" id="metric-users">—</span>
+                            <span class="metric-label">Total Users</span>
+                        </div>
+                        <span class="metric-trend up" id="trend-users"></span>
+                    </div>
+
+                    <div class="metric-card" id="card-videos">
+                        <div class="metric-icon icon-videos">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="23 7 16 12 23 17 23 7"/>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                            </svg>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-value" id="metric-videos">—</span>
+                            <span class="metric-label">Total Videos</span>
+                        </div>
+                        <span class="metric-trend up" id="trend-videos"></span>
+                    </div>
+
+                    <div class="metric-card" id="card-sessions">
+                        <div class="metric-icon icon-sessions">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-value" id="metric-sessions">—</span>
+                            <span class="metric-label">Total Watch Sessions</span>
+                        </div>
+                        <span class="metric-trend up" id="trend-sessions"></span>
+                    </div>
+
+                    <div class="metric-card" id="card-events">
+                        <div class="metric-icon icon-events">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-value" id="metric-events">—</span>
+                            <span class="metric-label">Total Events</span>
+                        </div>
+                        <span class="metric-trend up" id="trend-events"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ─── Section 2: Trending Videos ─── -->
+            <section class="section" id="section-trending">
+                <div class="section-header">
+                    <h2 class="section-title">Trending Content <span class="title-badge">Last 24 Hours</span></h2>
+                </div>
+                <div class="chart-card">
+                    <canvas id="trendingChart"></canvas>
+                </div>
+            </section>
+
+            <!-- ─── Charts Row: Abandonment + Watch Time ─── -->
+            <div class="charts-row">
+                <!-- Section 3: Video Abandonment Rate -->
+                <section class="section" id="section-abandonment">
+                    <div class="section-header">
+                        <h2 class="section-title">Video Performance</h2>
+                        <span class="section-subtitle">Abandonment Rate</span>
+                    </div>
+                    <div class="chart-card">
+                        <canvas id="abandonmentChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Section 4: Average Watch Time -->
+                <section class="section" id="section-watchtime">
+                    <div class="section-header">
+                        <h2 class="section-title">Average Watch Duration</h2>
+                        <span class="section-subtitle">Seconds per video</span>
+                    </div>
+                    <div class="chart-card">
+                        <canvas id="watchtimeChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ─── Section 5: User Engagement ─── -->
+            <section class="section" id="section-engagement">
+                <div class="section-header">
+                    <h2 class="section-title">User Engagement</h2>
+                    <span class="section-subtitle">Top users by activity</span>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table id="engagement-table">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Sessions</th>
+                                    <th>Total Watch Time</th>
+                                    <th>Completion %</th>
+                                    <th>Engagement Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="engagement-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ─── Section 6: Churn Risk Detection ─── -->
+            <section class="section" id="section-churn">
+                <div class="section-header">
+                    <h2 class="section-title">Churn Risk Detection</h2>
+                    <span class="section-subtitle">Users at risk of leaving</span>
+                </div>
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table id="churn-table">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Last Activity</th>
+                                    <th>Sessions</th>
+                                    <th>Completion %</th>
+                                    <th>Churn Risk Level</th>
+                                </tr>
+                            </thead>
+                            <tbody id="churn-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ═══════════════ LIVE ACTIVITY FEED (Sidebar) ═══════════════ -->
+        <aside class="live-feed" id="live-feed">
+            <div class="feed-header">
+                <div class="feed-title-row">
+                    <h3 class="feed-title">Live Streaming Activity</h3>
+                    <span class="feed-live-dot"></span>
+                </div>
+                <span class="feed-subtitle">Real-time user actions</span>
+            </div>
+            <div class="feed-list" id="feed-list">
+                <!-- JS will populate this -->
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- ═══════════════ FOOTER ═══════════════ -->
+    <footer class="dashboard-footer">
+        <span>Streaming Analytics Platform &copy; 2026</span>
+        <span class="footer-divider">·</span>
+        <span>Powered by PostgreSQL</span>
+    </footer>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
