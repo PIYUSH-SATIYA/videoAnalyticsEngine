@@ -33,26 +33,26 @@ VIDEOS_FILE = OUTPUT_DIR / "videos.csv"
 DEVICES_FILE = OUTPUT_DIR / "devices.csv"
 SESSIONS_FILE = OUTPUT_DIR / "sessions.csv"
 EVENTS_FILE = OUTPUT_DIR / "events.csv"
-# GENRES_FILE = OUTPUT_DIR / "genres.csv"
-# VIDEO_GENRE_FILE = OUTPUT_DIR / "video_genre.csv"
+GENRES_FILE = OUTPUT_DIR / "genres.csv"
+VIDEO_GENRE_FILE = OUTPUT_DIR / "video_genre.csv"
 
 
-# # -----------------------------
-# # Genre / DOB config
-# # -----------------------------
-# GENRES = [
-#     "Action", "Comedy", "Drama", "Horror", "Thriller",
-#     "Romance", "Documentary", "Animation", "Sci-Fi", "Fantasy",
-#     "Mystery", "Crime", "Adventure", "Music", "Sport",
-# ]
+# -----------------------------
+# Genre / DOB config
+# -----------------------------
+GENRES = [
+    "Action", "Comedy", "Drama", "Horror", "Thriller",
+    "Romance", "Documentary", "Animation", "Sci-Fi", "Fantasy",
+    "Mystery", "Crime", "Adventure", "Music", "Sport",
+]
 
-# DOB_START = datetime(1950, 1, 1)
-# DOB_END = datetime(2006, 12, 31)
-# _DOB_RANGE_DAYS = (DOB_END - DOB_START).days
+DOB_START = datetime(1950, 1, 1)
+DOB_END = datetime(2006, 12, 31)
+_DOB_RANGE_DAYS = (DOB_END - DOB_START).days
 
 
-# def random_dob() -> str:
-#     return (DOB_START + timedelta(days=random.randint(0, _DOB_RANGE_DAYS))).strftime("%Y-%m-%d")
+def random_dob() -> str:
+    return (DOB_START + timedelta(days=random.randint(0, _DOB_RANGE_DAYS))).strftime("%Y-%m-%d")
 
 
 # -----------------------------
@@ -292,37 +292,37 @@ def generate_videos(num_videos: int) -> List[int]:
     return video_ids
 
 
-# def generate_genres() -> List[Tuple[int, str]]:
-#     print(f"Generating genres: {len(GENRES)}")
-#     genre_records: List[Tuple[int, str]] = [(i + 1, name) for i, name in enumerate(GENRES)]
-#     with GENRES_FILE.open("w", newline="") as file:
-#         writer = csv.writer(file)
-#         writer.writerow(["genre_id", "name"])
-#         writer.writerows(genre_records)
-#     return genre_records
+def generate_genres() -> List[Tuple[int, str]]:
+    print(f"Generating genres: {len(GENRES)}")
+    genre_records: List[Tuple[int, str]] = [(i + 1, name) for i, name in enumerate(GENRES)]
+    with GENRES_FILE.open("w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["genre_id", "name"])
+        writer.writerows(genre_records)
+    return genre_records
 
 
-# def generate_video_genre(
-#     video_ids: Sequence[int],
-#     genre_records: List[Tuple[int, str]],
-# ) -> int:
-#     print("Generating video_genre mappings")
-#     genre_ids = [g[0] for g in genre_records]
-#     count = 0
-#     with VIDEO_GENRE_FILE.open("w", newline="") as file:
-#         writer = csv.writer(file)
-#         writer.writerow(["video_id", "genre_id"])
-#         batch: List[Tuple[int, int]] = []
-#         for video_id in video_ids:
-#             num_genres = random.choices([1, 2, 3], weights=[0.50, 0.35, 0.15], k=1)[0]
-#             for gid in random.sample(genre_ids, num_genres):
-#                 batch.append((video_id, gid))
-#                 count += 1
-#                 if len(batch) >= BATCH_SIZE:
-#                     write_batch(writer, batch)
-#         write_batch(writer, batch)
-#     print(f"Generated video_genre rows: {count}")
-#     return count
+def generate_video_genre(
+    video_ids: Sequence[int],
+    genre_records: List[Tuple[int, str]],
+) -> int:
+    print("Generating video_genre mappings")
+    genre_ids = [g[0] for g in genre_records]
+    count = 0
+    with VIDEO_GENRE_FILE.open("w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["video_id", "genre_id"])
+        batch: List[Tuple[int, int]] = []
+        for video_id in video_ids:
+            num_genres = random.choices([1, 2, 3], weights=[0.50, 0.35, 0.15], k=1)[0]
+            for gid in random.sample(genre_ids, num_genres):
+                batch.append((video_id, gid))
+                count += 1
+                if len(batch) >= BATCH_SIZE:
+                    write_batch(writer, batch)
+        write_batch(writer, batch)
+    print(f"Generated video_genre rows: {count}")
+    return count
 
 
 def devices_per_user() -> int:
@@ -586,8 +586,8 @@ def main() -> None:
 
     user_ids = generate_users(NUM_USERS)
     video_ids = generate_videos(NUM_VIDEOS)
-    # genre_records = generate_genres()
-    # total_video_genre = generate_video_genre(video_ids, genre_records)
+    genre_records = generate_genres()
+    total_video_genre = generate_video_genre(video_ids, genre_records)
     devices, user_to_device_ids = generate_devices(user_ids)
     sessions = generate_sessions(user_ids, user_to_device_ids, TARGET_NUM_SESSIONS)
     total_events = generate_events(sessions, video_ids, TARGET_NUM_EVENTS)
@@ -595,8 +595,8 @@ def main() -> None:
     print("Done")
     print(f"users={len(user_ids)}")
     print(f"videos={len(video_ids)}")
-    # print(f"genres={len(genre_records)}")
-    # print(f"video_genre rows={total_video_genre}")
+    print(f"genres={len(genre_records)}")
+    print(f"video_genre rows={total_video_genre}")
     print(f"devices={len(devices)}")
     print(f"sessions={len(sessions)}")
     print(f"events={total_events}")
