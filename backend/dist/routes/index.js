@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.apiV1Router = void 0;
+const express_1 = require("express");
+const health_routes_1 = require("./health.routes");
+const analytics_routes_1 = require("../modules/analytics/analytics.routes");
+const reportPaths_routes_1 = require("../modules/analytics/reportPaths.routes");
+const router = (0, express_1.Router)();
+exports.apiV1Router = router;
+router.use('/health', health_routes_1.healthRouter);
+router.use('/analytics', analytics_routes_1.analyticsRouter);
+router.use('/analytics/kpis', reportPaths_routes_1.kpiRouter);
+router.use('/analytics/tables', reportPaths_routes_1.tableRouter);
+router.use('/analytics/graphs', reportPaths_routes_1.graphRouter);

@@ -1,0 +1,111 @@
+-- Query ID: TBL-01
+-- Purpose: Ranked users by watch time in a selected period
+-- Parameters (optional):
+--   @start_ts, @end_ts, @min_watch_seconds, @min_sessions, @age_min, @age_max,
+--   @device_type_csv, @limit, @offset, @sort_by, @sort_order
+
+SET @q_start = NOW(6);
+
+SET @start_ts = COALESCE(@start_ts, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY));
+SET @end_ts = COALESCE(@end_ts, UTC_TIMESTAMP());
+SET @min_watch_seconds = COALESCE(@min_watch_seconds, 0);
+SET @min_sessions = COALESCE(@min_sessions, 1);
+SET @limit = LEAST(COALESCE(@limit, 25), 200);
+SET @offset = COALESCE(@offset, 0);
+SET @sort_by = COALESCE(@sort_by, 'watch_time_seconds');
+SET @sort_order = COALESCE(@sort_order, 'desc');
+SET @device_type_csv = NULLIF(@device_type_csv, '');
+SET @row_start = @offset + 1;
+SET @row_end = @offset + @limit;
+
+START TRANSACTION;
+
+SELECT
+  paged.user_id,
+  paged.age,
+  paged.sessions_count,
+  paged.watch_time_seconds,
+  paged.avg_session_duration_seconds,
+  paged.device_mix_json
+FROM (
+  SELECT
+    ranked.*,
+    ROW_NUMBER() OVER (
+      ORDER BY
+        CASE WHEN @sort_by = 'sessions_count' AND @sort_order = 'asc' THEN ranked.sessions_count END ASC,
+        CASE WHEN @sort_by = 'sessions_count' AND @sort_order = 'desc' THEN ranked.sessions_count END DESC,
+        CASE WHEN @sort_by = 'age' AND @sort_order = 'asc' THEN ranked.age END ASC,
+        CASE WHEN @sort_by = 'age' AND @sort_order = 'desc' THEN ranked.age END DESC,
+        CASE WHEN @sort_by = 'watch_time_seconds' AND @sort_order = 'asc' THEN ranked.watch_time_seconds END ASC,
+        CASE WHEN @sort_by = 'watch_time_seconds' AND @sort_order = 'desc' THEN ranked.watch_time_seconds END DESC,
+        ranked.watch_time_seconds DESC,
+        ranked.user_id ASC
+    ) AS rn
+  FROM (
+    SELECT
+      ua.user_id,
+      ua.age,
+      ua.sessions_count,
+      ua.watch_time_seconds,
+      ROUND(ua.watch_time_seconds / NULLIF(ua.sessions_count, 0), 2) AS avg_session_duration_seconds,
+      dm.device_mix_json
+    FROM (
+      SELECT
+        s.user_id,
+        TIMESTAMPDIFF(YEAR, u.dob, CURDATE()) AS age,
+        COUNT(*) AS sessions_count,
+        SUM(GREATEST(TIMESTAMPDIFF(SECOND, s.started_at, s.ended_at), 0)) AS watch_time_seconds
+      FROM sessions s
+      JOIN users u ON u.user_id = s.user_id
+      JOIN devices d ON d.device_id = s.device_id
+      WHERE s.started_at >= @start_ts
+        AND s.started_at < @end_ts
+        AND s.ended_at IS NOT NULL
+        AND (@age_min IS NULL OR TIMESTAMPDIFF(YEAR, u.dob, CURDATE()) >= @age_min)
+        AND (@age_max IS NULL OR TIMESTAMPDIFF(YEAR, u.dob, CURDATE()) <= @age_max)
+        AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
+      GROUP BY s.user_id, TIMESTAMPDIFF(YEAR, u.dob, CURDATE())
+      HAVING COUNT(*) >= @min_sessions
+         AND SUM(GREATEST(TIMESTAMPDIFF(SECOND, s.started_at, s.ended_at), 0)) >= @min_watch_seconds
+    ) ua
+    JOIN (
+      SELECT
+        x.user_id,
+        CONCAT(
+          '{',
+          GROUP_CONCAT(CONCAT('"', x.device_type, '":', x.device_sessions) ORDER BY x.device_type SEPARATOR ','),
+          '}'
+        ) AS device_mix_json
+      FROM (
+        SELECT
+          s.user_id,
+          d.device_type,
+          COUNT(*) AS device_sessions
+        FROM sessions s
+        JOIN users u ON u.user_id = s.user_id
+        JOIN devices d ON d.device_id = s.device_id
+        WHERE s.started_at >= @start_ts
+          AND s.started_at < @end_ts
+          AND s.ended_at IS NOT NULL
+          AND (@age_min IS NULL OR TIMESTAMPDIFF(YEAR, u.dob, CURDATE()) >= @age_min)
+          AND (@age_max IS NULL OR TIMESTAMPDIFF(YEAR, u.dob, CURDATE()) <= @age_max)
+          AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
+        GROUP BY s.user_id, d.device_type
+      ) x
+      GROUP BY x.user_id
+    ) dm ON dm.user_id = ua.user_id
+  ) ranked
+) paged
+WHERE paged.rn BETWEEN @row_start AND @row_end
+ORDER BY paged.rn;
+
+SET @q_end = NOW(6);
+
+SELECT
+  'TBL-01' AS query_id,
+  ROUND(TIMESTAMPDIFF(MICROSECOND, @q_start, @q_end) / 1000, 3) AS query_time_ms,
+  UTC_TIMESTAMP(6) AS generated_at_utc,
+  @limit AS applied_limit,
+  @offset AS applied_offset;
+
+COMMIT;
