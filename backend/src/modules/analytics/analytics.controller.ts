@@ -18,11 +18,18 @@ export class AnalyticsController {
       requestId: req.requestId ?? 'unknown',
       generatedAt: new Date().toISOString(),
       rowCount: result.rows.length,
+      appliedFilters: result.appliedParams,
       queryId: typeof metadata.query_id === 'string' ? metadata.query_id : undefined,
       queryTimeMs:
         typeof metadata.query_time_ms === 'number'
           ? metadata.query_time_ms
           : result.driverTimeMs,
+      queryGeneratedAtUtc:
+        metadata.generated_at_utc instanceof Date
+          ? metadata.generated_at_utc.toISOString()
+          : typeof metadata.generated_at_utc === 'string'
+            ? metadata.generated_at_utc
+            : undefined,
       apiTimeMs,
       reportKey
     });

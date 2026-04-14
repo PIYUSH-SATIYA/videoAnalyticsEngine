@@ -4,7 +4,7 @@ exports.errorHandler = errorHandler;
 const AppError_1 = require("../errors/AppError");
 const response_1 = require("../http/response");
 const logger_1 = require("../../config/logger");
-function errorHandler(err, req, res) {
+function errorHandler(err, req, res, _next) {
     const requestId = req.requestId ?? 'unknown';
     if (err instanceof AppError_1.AppError) {
         (0, response_1.sendError)(res, err.statusCode, err.code, err.message, {

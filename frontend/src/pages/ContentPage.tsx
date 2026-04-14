@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { analyticsApi } from '../lib/analytics';
@@ -8,18 +8,19 @@ import { useGlobalFilters } from '../context/GlobalFiltersContext';
 
 export function ContentPage() {
   const { filters } = useGlobalFilters();
+  const [genreId, setGenreId] = useState('');
 
   const data = useApiData(
     () =>
       analyticsApi.getVideoPerformanceByGenre({
-        start_ts: filters.startTs,
-        end_ts: filters.endTs,
+        ...(filters.startTs ? { start_ts: filters.startTs } : {}),
+        ...(filters.endTs ? { end_ts: filters.endTs } : {}),
         limit: 15,
         offset: 0,
-        ...(filters.genreId ? { genre_id_csv: filters.genreId } : {}),
+        ...(genreId ? { genre_id: Number(genreId) } : {}),
         ...(filters.deviceType ? { device_type_csv: filters.deviceType } : {})
       }),
-    [filters.startTs, filters.endTs, filters.deviceType, filters.genreId]
+    [filters.startTs, filters.endTs, filters.deviceType, genreId]
   );
 
   const columns = useMemo<GridColDef[]>(
@@ -45,6 +46,21 @@ export function ContentPage() {
           </p>
         </div>
         <QueryTimeBadge queryTimeMs={data.meta?.queryTimeMs} />
+      </div>
+
+      <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label className="form-control w-full">
+          <span className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+            Genre ID (Local)
+          </span>
+          <input
+            type="text"
+            className="input input-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
+            value={genreId}
+            onChange={(e) => setGenreId(e.target.value)}
+            placeholder="All genres"
+          />
+        </label>
       </div>
 
       {data.error ? (

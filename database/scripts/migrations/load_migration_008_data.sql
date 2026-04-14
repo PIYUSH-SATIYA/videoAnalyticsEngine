@@ -46,7 +46,10 @@ FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 LINES
-(genre_id, name);
+(@genre_id, @genre_name)
+SET
+  genre_id = @genre_id,
+  name = TRIM(TRAILING '\r' FROM @genre_name);
 
 -- ---------------------------------------------------------------
 -- Step 3: Insert video <-> genre mappings

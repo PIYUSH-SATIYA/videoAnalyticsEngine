@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { AppError } from '../errors/AppError';
 import { sendError } from '../http/response';
 import { logger } from '../../config/logger';
 
-export function errorHandler(err: unknown, req: Request, res: Response): void {
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
   const requestId = req.requestId ?? 'unknown';
 
   if (err instanceof AppError) {
