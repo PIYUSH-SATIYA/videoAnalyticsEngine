@@ -1,9 +1,14 @@
 -- Query ID: KPI-03
--- Purpose: Global average session duration over rolling 7 days (no filters)
+-- Purpose: Global average session duration over latest observed rolling 7 days (no filters)
 
 SET @q_start = NOW(6);
-SET @window_start = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY);
-SET @window_end = UTC_TIMESTAMP();
+SET @ref_ts = COALESCE(
+  (SELECT MAX(event_timestamp) FROM events),
+  (SELECT MAX(started_at) FROM sessions),
+  UTC_TIMESTAMP()
+);
+SET @window_start = DATE_SUB(@ref_ts, INTERVAL 7 DAY);
+SET @window_end = @ref_ts;
 
 START TRANSACTION;
 
@@ -19,6 +24,8 @@ SET @q_end = NOW(6);
 SELECT
   'KPI-03' AS query_id,
   ROUND(TIMESTAMPDIFF(MICROSECOND, @q_start, @q_end) / 1000, 3) AS query_time_ms,
-  UTC_TIMESTAMP(6) AS generated_at_utc;
+  UTC_TIMESTAMP(6) AS generated_at_utc,
+  @window_start AS applied_window_start,
+  @window_end AS applied_window_end;
 
 COMMIT;

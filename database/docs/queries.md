@@ -14,7 +14,7 @@ This file defines the exact analytics questions, metric terms, output shape, and
 - Multi-select encoding: repeated query params (`device_type=mobile&device_type=tv`, `genre_id=1&genre_id=5`).
 - Time semantics:
   - `start_ts`, `end_ts` in ISO-8601 UTC.
-  - default window for non-live queries: last 30 days.
+  - default window for non-live queries: latest observed 30-day window anchored at max data timestamp.
   - window logic: `event_timestamp >= start_ts AND event_timestamp < end_ts`.
   - `time_grain`: `day|week|month` (graph queries).
 - Segment filters:
@@ -26,6 +26,7 @@ This file defines the exact analytics questions, metric terms, output shape, and
 - Threshold filters: `min_watch_seconds`, `max_watch_seconds`, `min_sessions`, `min_events`.
 - Table controls: `limit` (default 25, max 200), `offset` (default 0), `sort_by`, `sort_order` (`asc|desc`).
 - KPI policy: KPI cards are global rollups and do not accept filters.
+- KPI windows are anchored to latest observed activity timestamp in the dataset.
 - Graph policy: each graph supports only 1 optional segment filter in addition to the time window.
 
 ## Metric terms (must remain consistent)

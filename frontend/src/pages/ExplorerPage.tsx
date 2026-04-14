@@ -18,15 +18,23 @@ type ExplorerReport =
   | 'userEventMix'
   | 'videoPerformance';
 
+const heatmapColorRamp = ['#f3f8ff', '#dcecff', '#b7d9ff', '#85beff', '#4f9af5', '#2f6f67'];
+
 export function ExplorerPage() {
   const { filters } = useGlobalFilters();
   const [report, setReport] = useState<ExplorerReport>('eventMix');
+  const [genreId, setGenreId] = useState('');
+  const [userId, setUserId] = useState('42');
+  const [videoId, setVideoId] = useState('120');
+  const [heatmapMetric, setHeatmapMetric] = useState<'watch_time_seconds' | 'sessions_count'>(
+    'watch_time_seconds'
+  );
 
   const active = useApiData(
     () => {
       const commonParams = {
-        start_ts: filters.startTs,
-        end_ts: filters.endTs,
+        ...(filters.startTs ? { start_ts: filters.startTs } : {}),
+        ...(filters.endTs ? { end_ts: filters.endTs } : {}),
         time_grain: filters.timeGrain,
         ...(filters.deviceType ? { device_type: filters.deviceType } : {})
       };
@@ -42,15 +50,15 @@ export function ExplorerPage() {
       if (report === 'genreTrend') {
         return analyticsApi.getGenreWatchTrend({
           ...commonParams,
-          ...(filters.genreId ? { genre_id: Number(filters.genreId) } : {})
+          ...(genreId ? { genre_id: Number(genreId) } : {})
         });
       }
 
       if (report === 'heatmap') {
         return analyticsApi.getHourlyConsumptionHeatmap({
-          start_ts: filters.startTs,
-          end_ts: filters.endTs,
-          metric: filters.heatmapMetric,
+          ...(filters.startTs ? { start_ts: filters.startTs } : {}),
+          ...(filters.endTs ? { end_ts: filters.endTs } : {}),
+          metric: heatmapMetric,
           ...(filters.deviceType ? { device_type: filters.deviceType } : {})
         });
       }
@@ -58,13 +66,13 @@ export function ExplorerPage() {
       if (report === 'userEventMix') {
         return analyticsApi.getUserEventMixTrend({
           ...commonParams,
-          user_id: Number(filters.userId || 42)
+          user_id: Number(userId || 42)
         });
       }
 
       return analyticsApi.getVideoPerformanceTrend({
         ...commonParams,
-        video_id: Number(filters.videoId || 120)
+        video_id: Number(videoId || 120)
       });
     },
     [
@@ -73,10 +81,10 @@ export function ExplorerPage() {
       filters.endTs,
       filters.timeGrain,
       filters.deviceType,
-      filters.genreId,
-      filters.heatmapMetric,
-      filters.userId,
-      filters.videoId
+      genreId,
+      heatmapMetric,
+      userId,
+      videoId
     ]
   );
 
@@ -131,7 +139,7 @@ export function ExplorerPage() {
     ];
   }, [report]);
 
-  const chartPanel = buildChart(report, rows, filters.timeGrain, filters.heatmapMetric);
+  const chartPanel = buildChart(report, rows, filters.timeGrain, heatmapMetric);
 
   return (
     <section className="surface-card p-4 sm:p-5">
@@ -164,6 +172,69 @@ export function ExplorerPage() {
           active={report === 'videoPerformance'}
           onClick={() => setReport('videoPerformance')}
         />
+      </div>
+
+      <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {report === 'genreTrend' ? (
+          <label className="form-control w-full">
+            <span className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              Genre ID (Local)
+            </span>
+            <input
+              type="text"
+              className="input input-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
+              value={genreId}
+              onChange={(e) => setGenreId(e.target.value)}
+              placeholder="All genres"
+            />
+          </label>
+        ) : null}
+
+        {report === 'userEventMix' ? (
+          <label className="form-control w-full">
+            <span className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              User ID (Local)
+            </span>
+            <input
+              type="text"
+              className="input input-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder="e.g. 42"
+            />
+          </label>
+        ) : null}
+
+        {report === 'videoPerformance' ? (
+          <label className="form-control w-full">
+            <span className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              Video ID (Local)
+            </span>
+            <input
+              type="text"
+              className="input input-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
+              value={videoId}
+              onChange={(e) => setVideoId(e.target.value)}
+              placeholder="e.g. 120"
+            />
+          </label>
+        ) : null}
+
+        {report === 'heatmap' ? (
+          <label className="form-control w-full">
+            <span className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              Heatmap Metric (Local)
+            </span>
+            <select
+              className="select select-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
+              value={heatmapMetric}
+              onChange={(e) => setHeatmapMetric(e.target.value as 'watch_time_seconds' | 'sessions_count')}
+            >
+              <option value="watch_time_seconds">Watch Time</option>
+              <option value="sessions_count">Sessions Count</option>
+            </select>
+          </label>
+        ) : null}
       </div>
 
       {active.error ? <p className="text-sm text-[var(--error)]">{active.error}</p> : null}
@@ -214,22 +285,36 @@ function buildChart(
   }
 
   if (report === 'heatmap') {
-    const points = rows.map((row) => ({
-      x: Number(row.hour_of_day ?? 0),
-      y: Number(row.day_of_week ?? 0),
-      id: Number(row.metric_value ?? 0)
-    }));
+    const values = rows.map((row) => Number(row.metric_value ?? 0)).filter((v) => Number.isFinite(v));
+    const min = values.length > 0 ? Math.min(...values) : 0;
+    const max = values.length > 0 ? Math.max(...values) : 0;
+    const spread = max - min;
+    const seriesBuckets = heatmapColorRamp.map(() => [] as Array<{ x: number; y: number; id: number }>);
+
+    rows.forEach((row) => {
+      const value = Number(row.metric_value ?? 0);
+      const ratio = spread <= 0 || !Number.isFinite(value) ? 0.5 : (value - min) / spread;
+      const idx = Math.min(heatmapColorRamp.length - 1, Math.max(0, Math.floor(ratio * heatmapColorRamp.length)));
+
+      seriesBuckets[idx]?.push({
+        x: Number(row.hour_of_day ?? 0),
+        y: Number(row.day_of_week ?? 0),
+        id: Number.isFinite(value) ? value : 0
+      });
+    });
+
+    const scatterSeries = seriesBuckets
+      .map((bucket, idx) => ({
+        label: `${heatmapMetric === 'sessions_count' ? 'Sessions' : 'Watch Time'} bucket ${idx + 1}`,
+        data: bucket,
+        markerSize: 10,
+        color: heatmapColorRamp[idx]
+      }))
+      .filter((item) => item.data.length > 0);
 
     return (
       <ScatterChart
-        series={[
-          {
-            label: heatmapMetric === 'sessions_count' ? 'Sessions Count' : 'Watch Time',
-            data: points,
-            markerSize: 8,
-            color: '#2f6f67'
-          }
-        ]}
+        series={scatterSeries}
         xAxis={[{ min: 0, max: 23, label: 'Hour of Day' }]}
         yAxis={[{ min: 1, max: 7, label: 'Day of Week' }]}
       />
@@ -241,12 +326,12 @@ function buildChart(
     const values = rows.map((row) => Number(row.event_count ?? 0));
 
     return (
-      <BarChart
-        xAxis={[{ data: labels, scaleType: 'band' }]}
-        yAxis={[{ valueFormatter: (v: number) => compactNumber(Number(v)) }]}
-        series={[{ data: values, label: 'Events', color: '#4d5f5c' }]}
-      />
-    );
+        <BarChart
+          xAxis={[{ data: labels, scaleType: 'band' }]}
+          yAxis={[{ valueFormatter: (v: number) => compactNumber(Number(v)) }]}
+          series={[{ data: values, label: 'Events', color: '#4d5f5c' }]}
+        />
+      );
   }
 
   if (report === 'sessionTrend') {
@@ -258,6 +343,7 @@ function buildChart(
         xAxis={[{ data: labels, scaleType: 'point' }]}
         yAxis={[{ valueFormatter: (v: number) => `${compactNumber(Number(v))}s` }]}
         series={[{ data: values, label: 'Avg Session', color: '#2f6f67' }]}
+        axisHighlight={{ x: 'line', y: 'line' }}
       />
     );
   }
@@ -271,6 +357,7 @@ function buildChart(
         xAxis={[{ data: labels, scaleType: 'point' }]}
         yAxis={[{ valueFormatter: (v: number) => `${compactNumber(Number(v))}s` }]}
         series={[{ data: values, label: 'Genre Watch Time', color: '#7a8f59' }]}
+        axisHighlight={{ x: 'line', y: 'line' }}
       />
     );
   }
@@ -287,6 +374,7 @@ function buildChart(
         { data: sessions, label: 'Unique View Sessions', color: '#2f6f67' },
         { data: engagement, label: 'Engagement', color: '#7a8f59' }
       ]}
+      axisHighlight={{ x: 'line', y: 'line' }}
     />
   );
 }
