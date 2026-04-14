@@ -6,8 +6,15 @@
 
 SET @q_start = NOW(6);
 
-SET @start_ts = COALESCE(@start_ts, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY));
-SET @end_ts = COALESCE(@end_ts, UTC_TIMESTAMP());
+SET @as_of_ts = COALESCE(
+  (SELECT MAX(event_timestamp) FROM events),
+  (SELECT MAX(started_at) FROM sessions),
+  UTC_TIMESTAMP()
+);
+SET @default_end_ts = DATE_ADD(DATE(@as_of_ts), INTERVAL 1 DAY);
+SET @default_start_ts = DATE_SUB(@default_end_ts, INTERVAL 30 DAY);
+SET @start_ts = COALESCE(@start_ts, @default_start_ts);
+SET @end_ts = COALESCE(@end_ts, @default_end_ts);
 SET @time_grain = COALESCE(@time_grain, 'day');
 SET @genre_id = NULLIF(@genre_id, '');
 

@@ -19,8 +19,8 @@ export function OverviewPage() {
   const chart = useApiData(
     () =>
       analyticsApi.getSessionDurationTrend({
-        start_ts: filters.startTs,
-        end_ts: filters.endTs,
+        ...(filters.startTs ? { start_ts: filters.startTs } : {}),
+        ...(filters.endTs ? { end_ts: filters.endTs } : {}),
         time_grain: filters.timeGrain,
         ...(filters.deviceType ? { device_type: filters.deviceType } : {})
       }),
@@ -30,8 +30,8 @@ export function OverviewPage() {
   const table = useApiData(
     () =>
       analyticsApi.getTopBingeWatchers({
-        start_ts: filters.startTs,
-        end_ts: filters.endTs,
+        ...(filters.startTs ? { start_ts: filters.startTs } : {}),
+        ...(filters.endTs ? { end_ts: filters.endTs } : {}),
         limit: 10,
         offset: 0,
         sort_by: 'watch_time_seconds',

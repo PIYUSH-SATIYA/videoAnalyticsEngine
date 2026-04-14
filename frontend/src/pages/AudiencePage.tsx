@@ -12,8 +12,8 @@ export function AudiencePage() {
   const data = useApiData(
     () =>
       analyticsApi.getAgeGroupsWatchTimeByDevice({
-        start_ts: filters.startTs,
-        end_ts: filters.endTs,
+        ...(filters.startTs ? { start_ts: filters.startTs } : {}),
+        ...(filters.endTs ? { end_ts: filters.endTs } : {}),
         limit: 20,
         offset: 0,
         ...(filters.deviceType ? { device_type_csv: filters.deviceType } : {})

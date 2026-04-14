@@ -10,13 +10,14 @@ export class AnalyticsRepository {
     query: Record<string, unknown>
   ): Promise<AnalyticsQueryResult> {
     const sql = loadSql(sqlFile);
-    const executableSql = buildPrefixedSql(reportKey, query, sql);
-    const execution = await executeAnalyticsSql(executableSql);
+    const prefixed = buildPrefixedSql(reportKey, query, sql);
+    const execution = await executeAnalyticsSql(prefixed.sql);
 
     return {
       rows: execution.dataRows as unknown as Record<string, unknown>[],
       metadata: execution.metadataRow,
-      driverTimeMs: execution.queryTimeMs
+      driverTimeMs: execution.queryTimeMs,
+      appliedParams: prefixed.appliedParams
     };
   }
 }
