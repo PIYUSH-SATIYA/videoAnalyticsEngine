@@ -1,0 +1,130 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@layer base {
+  :root {
+    --bg-app: #f5f5f4;
+    --bg-surface: #ffffff;
+    --bg-surface-2: #f8fafc;
+    --border-default: #d6d3d1;
+    --border-strong: #a8a29e;
+    --text-primary: #1c1917;
+    --text-secondary: #57534e;
+    --text-tertiary: #78716c;
+    --accent-500: #2f6f67;
+    --accent-600: #285f58;
+    --accent-100: #dceae7;
+    --success: #2e7d32;
+    --warning: #b26a00;
+    --error: #b42318;
+    --timing-fast-bg: #e7f6ea;
+    --timing-fast-text: #1f6d34;
+    --timing-medium-bg: #fff4dd;
+    --timing-medium-text: #8a5a00;
+    --timing-slow-bg: #fde8e8;
+    --timing-slow-text: #9f1d1d;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    color: var(--text-primary);
+    background: var(--bg-app);
+    font-family: Inter, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+}
+
+@plugin "daisyui/theme" {
+  name: "streamblend";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: #f5f5f4;
+  --color-base-200: #ecebe9;
+  --color-base-300: #ddd9d5;
+  --color-base-content: #1c1917;
+  --color-primary: #2f6f67;
+  --color-primary-content: #f2faf8;
+  --color-secondary: #4d5f5c;
+  --color-secondary-content: #f5f8f8;
+  --color-accent: #7a8f59;
+  --color-accent-content: #11180a;
+  --color-neutral: #2f2b28;
+  --color-neutral-content: #f3f1ef;
+  --color-info: #3f5f5a;
+  --color-info-content: #eef7f5;
+  --color-success: #2e7d32;
+  --color-success-content: #eef8ef;
+  --color-warning: #b26a00;
+  --color-warning-content: #fff8eb;
+  --color-error: #b42318;
+  --color-error-content: #fff0ee;
+  --radius-selector: 0.6rem;
+  --radius-field: 0.55rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@layer components {
+  .surface-card {
+    @apply rounded-xl border bg-white;
+    border-color: var(--border-default);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  }
+
+  .panel-heading {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .timing-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .timing-fast {
+    background: var(--timing-fast-bg);
+    color: var(--timing-fast-text);
+  }
+
+  .timing-medium {
+    background: var(--timing-medium-bg);
+    color: var(--timing-medium-text);
+  }
+
+  .timing-slow {
+    background: var(--timing-slow-bg);
+    color: var(--timing-slow-text);
+  }
+
+  .select,
+  .input {
+    color: var(--text-primary);
+    background-color: var(--bg-surface);
+    border-color: var(--border-default);
+    -webkit-text-fill-color: var(--text-primary);
+  }
+
+  .select:focus,
+  .input:focus {
+    outline: 2px solid color-mix(in srgb, var(--accent-500) 70%, white 30%);
+    outline-offset: 1px;
+  }
+
+  .select option {
+    color: var(--text-primary);
+    background-color: var(--bg-surface);
+  }
+
+  .input::placeholder {
+    color: var(--text-tertiary);
+    opacity: 1;
+  }
+}

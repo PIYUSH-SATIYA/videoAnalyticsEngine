@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.analyticsRouter = void 0;
+const express_1 = require("express");
+const analytics_repository_1 = require("./analytics.repository");
+const analytics_service_1 = require("./analytics.service");
+const analytics_controller_1 = require("./analytics.controller");
+const asyncHandler_1 = require("../../libs/util/asyncHandler");
+const validate_1 = require("../../core/middleware/validate");
+const analytics_schemas_1 = require("./analytics.schemas");
+const router = (0, express_1.Router)();
+exports.analyticsRouter = router;
+const repository = new analytics_repository_1.AnalyticsRepository();
+const service = new analytics_service_1.AnalyticsService(repository);
+const controller = new analytics_controller_1.AnalyticsController(service);
+router.get('/reports', (0, validate_1.validateQuery)(analytics_schemas_1.listReportsSchema), (0, asyncHandler_1.asyncHandler)(controller.listReports));
+router.get('/reports/:reportKey', (0, asyncHandler_1.asyncHandler)(controller.runReport));

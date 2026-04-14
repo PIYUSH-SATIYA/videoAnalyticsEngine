@@ -258,13 +258,11 @@ def generate_users(num_users: int) -> List[int]:
 
     with USERS_FILE.open("w", newline="") as file:
         writer = csv.writer(file)
-        # writer.writerow(["user_id", "dob"])
-        writer.writerow(["user_id"])
+        writer.writerow(["user_id", "dob"])
         batch: List[Tuple] = []
 
         for user_id in user_ids:
-            # batch.append((user_id, random_dob()))
-            batch.append((user_id,))
+            batch.append((user_id, random_dob()))
             if len(batch) >= BATCH_SIZE:
                 write_batch(writer, batch)
 
