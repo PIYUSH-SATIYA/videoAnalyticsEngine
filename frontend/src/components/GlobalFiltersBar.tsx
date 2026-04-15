@@ -10,6 +10,22 @@ const RESET_FILTERS = {
 export function GlobalFiltersBar() {
   const { filters, setFilters } = useGlobalFilters();
 
+  const toDateTimeLocalValue = (value: string) => {
+    if (!value) {
+      return '';
+    }
+
+    return value.replace(' ', 'T').slice(0, 16);
+  };
+
+  const fromDateTimeLocalValue = (value: string) => {
+    if (!value) {
+      return '';
+    }
+
+    return `${value.replace('T', ' ')}:00`;
+  };
+
   const resetFilters = () => {
     setFilters(RESET_FILTERS);
   };
@@ -31,11 +47,15 @@ export function GlobalFiltersBar() {
             Start Time
           </span>
           <input
-            type="text"
+            type="datetime-local"
             className="input input-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
-            value={filters.startTs}
-            onChange={(e) => updateFilter('startTs', e.target.value)}
-            placeholder="Auto (dataset-aware)"
+            value={toDateTimeLocalValue(filters.startTs)}
+            onChange={(e) => updateFilter('startTs', fromDateTimeLocalValue(e.target.value))}
+            onKeyDown={(e) => {
+              if (e.key !== 'Tab') {
+                e.preventDefault();
+              }
+            }}
           />
         </label>
 
@@ -44,11 +64,15 @@ export function GlobalFiltersBar() {
             End Time
           </span>
           <input
-            type="text"
+            type="datetime-local"
             className="input input-bordered h-10 w-full bg-[var(--bg-surface)] text-[var(--text-primary)]"
-            value={filters.endTs}
-            onChange={(e) => updateFilter('endTs', e.target.value)}
-            placeholder="Auto (dataset-aware)"
+            value={toDateTimeLocalValue(filters.endTs)}
+            onChange={(e) => updateFilter('endTs', fromDateTimeLocalValue(e.target.value))}
+            onKeyDown={(e) => {
+              if (e.key !== 'Tab') {
+                e.preventDefault();
+              }
+            }}
           />
         </label>
 

@@ -28,71 +28,112 @@ SET @row_end = @offset + @limit;
 
 START TRANSACTION;
 
-SELECT
-  paged.video_id,
-  paged.title,
-  paged.genre_name,
-  paged.views,
-  ROUND(paged.watch_time_seconds, 2) AS watch_time_seconds,
-  paged.engagement_actions,
-  paged.exit_events
-FROM (
+WITH matched_video_genres AS (
   SELECT
-    ranked.*,
+    vg.video_id,
+    vg.genre_id
+  FROM video_genre vg
+  WHERE @genre_id_csv IS NULL OR FIND_IN_SET(CAST(vg.genre_id AS CHAR), @genre_id_csv) > 0
+),
+display_genre AS (
+  SELECT
+    mvg.video_id,
+    MIN(mvg.genre_id) AS genre_id
+  FROM matched_video_genres mvg
+  GROUP BY mvg.video_id
+),
+play_pairs AS (
+  SELECT DISTINCT
+    e.session_id,
+    e.video_id
+  FROM events e
+  JOIN display_genre dg ON dg.video_id = e.video_id
+  JOIN sessions s ON s.session_id = e.session_id
+  JOIN devices d ON d.device_id = s.device_id
+  WHERE e.event_timestamp >= @start_ts
+    AND e.event_timestamp < @end_ts
+    AND e.event_type = 'play'
+    AND s.ended_at IS NOT NULL
+    AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
+),
+views_watch_rollup AS (
+  SELECT
+    pp.video_id,
+    COUNT(*) AS views,
+    SUM(GREATEST(TIMESTAMPDIFF(SECOND, s.started_at, s.ended_at), 0)) AS watch_time_seconds
+  FROM play_pairs pp
+  JOIN sessions s ON s.session_id = pp.session_id
+  GROUP BY pp.video_id
+),
+action_rollup AS (
+  SELECT
+    e.video_id,
+    SUM(CASE WHEN e.event_type IN ('like', 'share', 'comment') THEN 1 ELSE 0 END) AS engagement_actions,
+    SUM(CASE WHEN e.event_type = 'exit' THEN 1 ELSE 0 END) AS exit_events,
+    COUNT(*) AS action_event_count
+  FROM events e
+  JOIN display_genre dg ON dg.video_id = e.video_id
+  JOIN sessions s ON s.session_id = e.session_id
+  JOIN devices d ON d.device_id = s.device_id
+  WHERE e.event_timestamp >= @start_ts
+    AND e.event_timestamp < @end_ts
+    AND e.event_type IN ('like', 'share', 'comment', 'exit')
+    AND s.ended_at IS NOT NULL
+    AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
+  GROUP BY e.video_id
+),
+video_rollup AS (
+  SELECT
+    dg.video_id,
+    COALESCE(vwr.views, 0) AS views,
+    COALESCE(vwr.watch_time_seconds, 0) AS watch_time_seconds,
+    COALESCE(ar.engagement_actions, 0) AS engagement_actions,
+    COALESCE(ar.exit_events, 0) AS exit_events,
+    COALESCE(vwr.views, 0) + COALESCE(ar.action_event_count, 0) AS event_count
+  FROM display_genre dg
+  LEFT JOIN views_watch_rollup vwr ON vwr.video_id = dg.video_id
+  LEFT JOIN action_rollup ar ON ar.video_id = dg.video_id
+),
+ranked AS (
+  SELECT
+    vr.video_id,
+    v.title,
+    TRIM(BOTH '\r' FROM g.name) AS genre_name,
+    vr.views,
+    vr.watch_time_seconds,
+    vr.engagement_actions,
+    vr.exit_events,
     ROW_NUMBER() OVER (
       ORDER BY
-        CASE WHEN @sort_by = 'engagement_actions' AND @sort_order = 'asc' THEN ranked.engagement_actions END ASC,
-        CASE WHEN @sort_by = 'engagement_actions' AND @sort_order = 'desc' THEN ranked.engagement_actions END DESC,
-        CASE WHEN @sort_by = 'watch_time_seconds' AND @sort_order = 'asc' THEN ranked.watch_time_seconds END ASC,
-        CASE WHEN @sort_by = 'watch_time_seconds' AND @sort_order = 'desc' THEN ranked.watch_time_seconds END DESC,
-        CASE WHEN @sort_by = 'exit_events' AND @sort_order = 'asc' THEN ranked.exit_events END ASC,
-        CASE WHEN @sort_by = 'exit_events' AND @sort_order = 'desc' THEN ranked.exit_events END DESC,
-        CASE WHEN @sort_by = 'views' AND @sort_order = 'asc' THEN ranked.views END ASC,
-        CASE WHEN @sort_by = 'views' AND @sort_order = 'desc' THEN ranked.views END DESC,
-        ranked.views DESC,
-        ranked.video_id ASC,
-        ranked.genre_name ASC
+        CASE WHEN @sort_by = 'engagement_actions' AND @sort_order = 'asc' THEN vr.engagement_actions END ASC,
+        CASE WHEN @sort_by = 'engagement_actions' AND @sort_order = 'desc' THEN vr.engagement_actions END DESC,
+        CASE WHEN @sort_by = 'watch_time_seconds' AND @sort_order = 'asc' THEN vr.watch_time_seconds END ASC,
+        CASE WHEN @sort_by = 'watch_time_seconds' AND @sort_order = 'desc' THEN vr.watch_time_seconds END DESC,
+        CASE WHEN @sort_by = 'exit_events' AND @sort_order = 'asc' THEN vr.exit_events END ASC,
+        CASE WHEN @sort_by = 'exit_events' AND @sort_order = 'desc' THEN vr.exit_events END DESC,
+        CASE WHEN @sort_by = 'views' AND @sort_order = 'asc' THEN vr.views END ASC,
+        CASE WHEN @sort_by = 'views' AND @sort_order = 'desc' THEN vr.views END DESC,
+        vr.views DESC,
+        vr.video_id ASC,
+        TRIM(BOTH '\r' FROM g.name) ASC
     ) AS rn
-  FROM (
-    SELECT
-      v.video_id,
-      v.title,
-      g.name AS genre_name,
-      COUNT(DISTINCT CASE WHEN e.event_type = 'play' THEN CONCAT(e.session_id, ':', e.video_id) END) AS views,
-      SUM(
-        GREATEST(TIMESTAMPDIFF(SECOND, s.started_at, s.ended_at), 0)
-        /
-        NULLIF(vc.video_count_per_session, 0)
-      ) AS watch_time_seconds,
-      SUM(CASE WHEN e.event_type IN ('like', 'share', 'comment') THEN 1 ELSE 0 END) AS engagement_actions,
-      SUM(CASE WHEN e.event_type = 'exit' THEN 1 ELSE 0 END) AS exit_events,
-      COUNT(*) AS event_count
-    FROM events e
-    JOIN sessions s ON s.session_id = e.session_id
-    JOIN devices d ON d.device_id = s.device_id
-    JOIN videos v ON v.video_id = e.video_id
-    JOIN video_genre vg ON vg.video_id = v.video_id
-    JOIN genre g ON g.genre_id = vg.genre_id
-    JOIN (
-      SELECT
-        e2.session_id,
-        COUNT(DISTINCT e2.video_id) AS video_count_per_session
-      FROM events e2
-      WHERE e2.event_timestamp >= @start_ts
-        AND e2.event_timestamp < @end_ts
-      GROUP BY e2.session_id
-    ) vc ON vc.session_id = e.session_id
-    WHERE e.event_timestamp >= @start_ts
-      AND e.event_timestamp < @end_ts
-      AND s.ended_at IS NOT NULL
-      AND (@genre_id_csv IS NULL OR FIND_IN_SET(CAST(g.genre_id AS CHAR), @genre_id_csv) > 0)
-      AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
-    GROUP BY v.video_id, v.title, g.name
-    HAVING COUNT(*) >= @min_events
-  ) ranked
-) paged
-WHERE paged.rn BETWEEN @row_start AND @row_end
-ORDER BY paged.rn;
+  FROM video_rollup vr
+  JOIN videos v ON v.video_id = vr.video_id
+  JOIN display_genre dg ON dg.video_id = vr.video_id
+  JOIN genre g ON g.genre_id = dg.genre_id
+  WHERE vr.event_count >= @min_events
+)
+SELECT
+  ranked.video_id,
+  ranked.title,
+  ranked.genre_name,
+  ranked.views,
+  ROUND(ranked.watch_time_seconds, 2) AS watch_time_seconds,
+  ranked.engagement_actions,
+  ranked.exit_events
+FROM ranked
+WHERE ranked.rn BETWEEN @row_start AND @row_end
+ORDER BY ranked.rn;
 
 SET @q_end = NOW(6);
 

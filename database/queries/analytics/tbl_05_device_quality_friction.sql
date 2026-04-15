@@ -29,56 +29,67 @@ SET @row_end = @offset + @limit;
 
 START TRANSACTION;
 
-SELECT
-  paged.device_type,
-  paged.operating_system,
-  paged.browser,
-  paged.quality_change_events,
-  CASE
-    WHEN paged.unique_view_sessions = 0 THEN 0
-    ELSE ROUND((paged.quality_change_events * 100.0) / paged.unique_view_sessions, 3)
-  END AS quality_change_per_100_views
-FROM (
+WITH matched_videos AS (
+  SELECT DISTINCT
+    vg.video_id
+  FROM video_genre vg
+  WHERE @genre_id_csv IS NULL OR FIND_IN_SET(CAST(vg.genre_id AS CHAR), @genre_id_csv) > 0
+),
+filtered_events AS (
   SELECT
-    ranked.*,
+    e.session_id,
+    e.video_id,
+    e.event_type,
+    d.device_type,
+    d.operating_system,
+    d.browser
+  FROM events e
+  JOIN matched_videos mv ON mv.video_id = e.video_id
+  JOIN sessions s ON s.session_id = e.session_id
+  JOIN devices d ON d.device_id = s.device_id
+  WHERE e.event_timestamp >= @start_ts
+    AND e.event_timestamp < @end_ts
+    AND e.event_type IN ('play', 'quality_change')
+    AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
+    AND (@operating_system_csv IS NULL OR FIND_IN_SET(d.operating_system, @operating_system_csv) > 0)
+    AND (@browser_csv IS NULL OR FIND_IN_SET(d.browser, @browser_csv) > 0)
+),
+device_rollup AS (
+  SELECT
+    fe.device_type,
+    fe.operating_system,
+    fe.browser,
+    SUM(CASE WHEN fe.event_type = 'quality_change' THEN 1 ELSE 0 END) AS quality_change_events,
+    COUNT(DISTINCT CASE WHEN fe.event_type = 'play' THEN CONCAT(fe.session_id, ':', fe.video_id) END) AS unique_view_sessions
+  FROM filtered_events fe
+  GROUP BY fe.device_type, fe.operating_system, fe.browser
+),
+ranked AS (
+  SELECT
+    dr.*,
     ROW_NUMBER() OVER (
       ORDER BY
-        CASE WHEN @sort_by = 'quality_change_per_100_views' AND @sort_order = 'asc' THEN (CASE WHEN ranked.unique_view_sessions = 0 THEN 0 ELSE (ranked.quality_change_events * 100.0) / ranked.unique_view_sessions END) END ASC,
-        CASE WHEN @sort_by = 'quality_change_per_100_views' AND @sort_order = 'desc' THEN (CASE WHEN ranked.unique_view_sessions = 0 THEN 0 ELSE (ranked.quality_change_events * 100.0) / ranked.unique_view_sessions END) END DESC,
-        CASE WHEN @sort_by = 'quality_change_events' AND @sort_order = 'asc' THEN ranked.quality_change_events END ASC,
-        CASE WHEN @sort_by = 'quality_change_events' AND @sort_order = 'desc' THEN ranked.quality_change_events END DESC,
-        ranked.quality_change_events DESC,
-        ranked.browser ASC
+        CASE WHEN @sort_by = 'quality_change_per_100_views' AND @sort_order = 'asc' THEN (CASE WHEN dr.unique_view_sessions = 0 THEN 0 ELSE (dr.quality_change_events * 100.0) / dr.unique_view_sessions END) END ASC,
+        CASE WHEN @sort_by = 'quality_change_per_100_views' AND @sort_order = 'desc' THEN (CASE WHEN dr.unique_view_sessions = 0 THEN 0 ELSE (dr.quality_change_events * 100.0) / dr.unique_view_sessions END) END DESC,
+        CASE WHEN @sort_by = 'quality_change_events' AND @sort_order = 'asc' THEN dr.quality_change_events END ASC,
+        CASE WHEN @sort_by = 'quality_change_events' AND @sort_order = 'desc' THEN dr.quality_change_events END DESC,
+        dr.quality_change_events DESC,
+        dr.browser ASC
     ) AS rn
-  FROM (
-    SELECT
-      d.device_type,
-      d.operating_system,
-      d.browser,
-      SUM(CASE WHEN e.event_type = 'quality_change' THEN 1 ELSE 0 END) AS quality_change_events,
-      COUNT(DISTINCT CASE WHEN e.event_type = 'play' THEN CONCAT(e.session_id, ':', e.video_id) END) AS unique_view_sessions
-    FROM events e
-    JOIN sessions s ON s.session_id = e.session_id
-    JOIN devices d ON d.device_id = s.device_id
-    WHERE e.event_timestamp >= @start_ts
-      AND e.event_timestamp < @end_ts
-      AND (@device_type_csv IS NULL OR FIND_IN_SET(d.device_type, @device_type_csv) > 0)
-      AND (@operating_system_csv IS NULL OR FIND_IN_SET(d.operating_system, @operating_system_csv) > 0)
-      AND (@browser_csv IS NULL OR FIND_IN_SET(d.browser, @browser_csv) > 0)
-      AND (
-        @genre_id_csv IS NULL
-        OR EXISTS (
-          SELECT 1
-          FROM video_genre vg
-          WHERE vg.video_id = e.video_id
-            AND FIND_IN_SET(CAST(vg.genre_id AS CHAR), @genre_id_csv) > 0
-        )
-      )
-    GROUP BY d.device_type, d.operating_system, d.browser
-  ) ranked
-) paged
-WHERE paged.rn BETWEEN @row_start AND @row_end
-ORDER BY paged.rn;
+  FROM device_rollup dr
+)
+SELECT
+  ranked.device_type,
+  ranked.operating_system,
+  ranked.browser,
+  ranked.quality_change_events,
+  CASE
+    WHEN ranked.unique_view_sessions = 0 THEN 0
+    ELSE ROUND((ranked.quality_change_events * 100.0) / ranked.unique_view_sessions, 3)
+  END AS quality_change_per_100_views
+FROM ranked
+WHERE ranked.rn BETWEEN @row_start AND @row_end
+ORDER BY ranked.rn;
 
 SET @q_end = NOW(6);
 

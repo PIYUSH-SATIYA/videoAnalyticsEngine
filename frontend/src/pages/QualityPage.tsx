@@ -37,9 +37,6 @@ export function QualityPage() {
       <div className="panel-heading mb-3">
         <div>
           <h2 className="text-lg font-semibold">Quality & Device Friction</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Detect platform-level playback quality friction.
-          </p>
         </div>
         <QueryTimeBadge queryTimeMs={data.meta?.queryTimeMs} />
       </div>

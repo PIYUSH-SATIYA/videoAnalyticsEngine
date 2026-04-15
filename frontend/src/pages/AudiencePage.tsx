@@ -14,12 +14,14 @@ export function AudiencePage() {
       analyticsApi.getAgeGroupsWatchTimeByDevice({
         ...(filters.startTs ? { start_ts: filters.startTs } : {}),
         ...(filters.endTs ? { end_ts: filters.endTs } : {}),
-        limit: 20,
+        limit: 50,
         offset: 0,
         ...(filters.deviceType ? { device_type_csv: filters.deviceType } : {})
       }),
     [filters.startTs, filters.endTs, filters.deviceType]
   );
+
+  const rows = (data.data ?? []) as Array<Record<string, unknown>>;
 
   const columns = useMemo<GridColDef[]>(
     () => [
@@ -37,9 +39,6 @@ export function AudiencePage() {
       <div className="panel-heading mb-3">
         <div>
           <h2 className="text-lg font-semibold">Audience Cohorts</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Age-bucket watch behavior by device with query runtime badge.
-          </p>
         </div>
         <QueryTimeBadge queryTimeMs={data.meta?.queryTimeMs} />
       </div>
@@ -49,11 +48,11 @@ export function AudiencePage() {
       ) : (
         <div className="h-[560px]">
           <DataGrid
-            rows={(data.data ?? []).map((row, index) => ({ id: index, ...row }))}
+            rows={rows.map((row, index) => ({ id: index, ...row }))}
             columns={columns}
             disableRowSelectionOnClick
             pageSizeOptions={[10, 20, 50]}
-            initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+            initialState={{ pagination: { paginationModel: { pageSize: 20, page: 0 } } }}
           />
         </div>
       )}
