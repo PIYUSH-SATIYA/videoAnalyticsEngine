@@ -9,18 +9,19 @@ import { useGlobalFilters } from '../context/GlobalFiltersContext';
 export function ContentPage() {
   const { filters } = useGlobalFilters();
   const [genreId, setGenreId] = useState('');
+  const genreFilterValue = genreId.trim();
 
   const data = useApiData(
     () =>
       analyticsApi.getVideoPerformanceByGenre({
         ...(filters.startTs ? { start_ts: filters.startTs } : {}),
         ...(filters.endTs ? { end_ts: filters.endTs } : {}),
-        limit: 15,
+        limit: 50,
         offset: 0,
-        ...(genreId ? { genre_id: Number(genreId) } : {}),
+        ...(genreFilterValue ? { genre_id_csv: genreFilterValue } : {}),
         ...(filters.deviceType ? { device_type_csv: filters.deviceType } : {})
       }),
-    [filters.startTs, filters.endTs, filters.deviceType, genreId]
+    [filters.startTs, filters.endTs, filters.deviceType, genreFilterValue]
   );
 
   const columns = useMemo<GridColDef[]>(
@@ -41,9 +42,6 @@ export function ContentPage() {
       <div className="panel-heading mb-3">
         <div>
           <h2 className="text-lg font-semibold">Content Intelligence</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Video performance by genre with engagement and exit metrics.
-          </p>
         </div>
         <QueryTimeBadge queryTimeMs={data.meta?.queryTimeMs} />
       </div>
@@ -71,8 +69,8 @@ export function ContentPage() {
             rows={(data.data ?? []).map((row, index) => ({ id: index, ...row }))}
             columns={columns}
             disableRowSelectionOnClick
-            pageSizeOptions={[10, 20, 50]}
-            initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+            pageSizeOptions={[10, 25, 50]}
+            initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
           />
         </div>
       )}

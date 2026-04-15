@@ -125,6 +125,8 @@ export function buildPrefixedSql(
   const setStatements: string[] = [];
   const appliedParams: Record<string, string | number> = {};
 
+  const resetStatements = report.allowedParams.map((key) => `SET @${key} = NULL;`);
+
   for (const [key, raw] of normalizedQuery.entries()) {
     if (raw == null) {
       continue;
@@ -153,7 +155,7 @@ export function buildPrefixedSql(
   }
 
   return {
-    sql: `${setStatements.join('\n')}\n${sql}`,
+    sql: `${[...resetStatements, ...setStatements].join('\n')}\n${sql}`,
     appliedParams
   };
 }

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
+import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { analyticsApi } from '../lib/analytics';
 import { useApiData } from '../hooks/useApiData';
@@ -11,10 +12,10 @@ import { compactNumber, formatPeriodLabel } from '../lib/chartFormat';
 export function OverviewPage() {
   const { filters } = useGlobalFilters();
 
-  const live = useApiData(() => analyticsApi.getKpiLiveUsers(), []);
   const watch = useApiData(() => analyticsApi.getKpiWatchTimeToday(), []);
   const session = useApiData(() => analyticsApi.getKpiAvgSessionDuration(), []);
   const engagement = useApiData(() => analyticsApi.getKpiEngagementRate(), []);
+  const binge = useApiData(() => analyticsApi.getKpiBingeUsers(), []);
 
   const chart = useApiData(
     () =>
@@ -79,7 +80,7 @@ export function OverviewPage() {
     ? `Session duration trend (${filters.deviceType})`
     : 'Session duration trend (all devices)';
 
-  const overviewErrors = [live.error, watch.error, session.error, engagement.error]
+  const overviewErrors = [watch.error, session.error, engagement.error, binge.error]
     .filter(Boolean)
     .join(' | ');
 
@@ -89,9 +90,6 @@ export function OverviewPage() {
         <div className="panel-heading mb-4">
           <div>
             <h2 className="text-xl font-semibold">Overview</h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              KPI snapshots with query completion time for DBMS skill demonstration.
-            </p>
           </div>
           <span className="rounded-md border border-[var(--border-default)] bg-[var(--bg-surface-2)] px-2.5 py-1 text-xs text-[var(--text-secondary)]">
             Updated live from /api/v1/analytics
@@ -100,10 +98,12 @@ export function OverviewPage() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard
-            title="Live users"
-            value={String((live.data?.[0] as { live_users?: number } | undefined)?.live_users ?? '-')}
-            metaTime={live.meta?.queryTimeMs}
-            loading={live.isLoading}
+            title="Binge watchers (7d)"
+            value={String(
+              Number((binge.data?.[0] as { binge_user_count?: number | string } | undefined)?.binge_user_count ?? 0)
+            )}
+            metaTime={binge.meta?.queryTimeMs}
+            loading={binge.isLoading}
           />
           <KpiCard
             title="Watch time today"
@@ -149,6 +149,8 @@ export function OverviewPage() {
               yAxis={[{ valueFormatter: (v: number) => `${compactNumber(Number(v))}s` }]}
               series={[{ data: yValues, label: 'Avg session (s)', color: '#2f6f67' }]}
               axisHighlight={{ x: 'line', y: 'line' }}
+              slotProps={{ tooltip: { trigger: 'axis' } }}
+              slots={{ tooltip: ChartsTooltip }}
               height={300}
               margin={{ top: 20, right: 20, bottom: 50, left: 45 }}
             />

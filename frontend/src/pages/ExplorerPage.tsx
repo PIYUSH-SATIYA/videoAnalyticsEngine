@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
 import type { GridColDef } from '@mui/x-data-grid';
 import { BarChart } from '@mui/x-charts/BarChart';
+import { ChartsTooltip } from '@mui/x-charts/ChartsTooltip';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { ScatterChart } from '@mui/x-charts/ScatterChart';
 import { analyticsApi } from '../lib/analytics';
@@ -50,7 +51,7 @@ export function ExplorerPage() {
       if (report === 'genreTrend') {
         return analyticsApi.getGenreWatchTrend({
           ...commonParams,
-          ...(genreId ? { genre_id: Number(genreId) } : {})
+          ...(genreId.trim() ? { genre_id: Number(genreId.trim()) } : {})
         });
       }
 
@@ -146,9 +147,6 @@ export function ExplorerPage() {
       <div className="panel-heading mb-3">
         <div>
           <h2 className="text-lg font-semibold">Data Explorer</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Multi-shape chart explorer backed by graph queries, plus raw result table.
-          </p>
         </div>
         <QueryTimeBadge queryTimeMs={active.meta?.queryTimeMs} />
       </div>
@@ -247,7 +245,7 @@ export function ExplorerPage() {
           <div className="mb-2 text-xs text-[var(--text-tertiary)]">
             Chart view ({rows.length} rows, grain: {filters.timeGrain})
           </div>
-          <div className="h-[360px]">{chartPanel}</div>
+          <div className="h-[360px] overflow-visible">{chartPanel}</div>
         </article>
 
         <article className="surface-card p-3 xl:col-span-2">
@@ -322,42 +320,122 @@ function buildChart(
   }
 
   if (report === 'eventMix' || report === 'userEventMix') {
-    const labels = rows.map((row) => formatPeriodLabel(String(row.period_start ?? ''), timeGrain));
-    const values = rows.map((row) => Number(row.event_count ?? 0));
+    const periodOrder = Array.from(new Set(rows.map((row) => String(row.period_start ?? '')).filter(Boolean))).sort();
+    const eventTypes = Array.from(new Set(rows.map((row) => String(row.event_type ?? '')).filter(Boolean))).sort();
+
+    const valueMap = new Map<string, number>();
+    rows.forEach((row) => {
+      const period = String(row.period_start ?? '');
+      const eventType = String(row.event_type ?? '');
+      const count = Number(row.event_count ?? 0);
+      if (!period || !eventType || !Number.isFinite(count)) {
+        return;
+      }
+      valueMap.set(`${period}__${eventType}`, count);
+    });
+
+    const labels = periodOrder.map((period) => formatPeriodLabel(period, timeGrain));
+    const series = eventTypes.map((eventType, index) => ({
+      label: eventType,
+      stack: 'events',
+      data: periodOrder.map((period) => valueMap.get(`${period}__${eventType}`) ?? 0),
+      color: ['#2f6f67', '#4d5f5c', '#7a8f59', '#8e6f4d', '#5a7fb0', '#9a5f7a', '#b07a3f', '#6c8f8c'][
+        index % 8
+      ]
+    }));
 
     return (
-        <BarChart
-          xAxis={[{ data: labels, scaleType: 'band' }]}
-          yAxis={[{ valueFormatter: (v: number) => compactNumber(Number(v)) }]}
-          series={[{ data: values, label: 'Events', color: '#4d5f5c' }]}
-        />
-      );
+      <BarChart
+        xAxis={[{ data: labels, scaleType: 'band' }]}
+        yAxis={[{ valueFormatter: (v: number) => compactNumber(Number(v)) }]}
+        series={series}
+        slotProps={{ tooltip: { trigger: 'axis' } }}
+        slots={{ tooltip: ChartsTooltip }}
+      />
+    );
   }
 
   if (report === 'sessionTrend') {
-    const labels = rows.map((row) => formatPeriodLabel(String(row.period_start ?? ''), timeGrain));
-    const values = rows.map((row) => Number(row.avg_session_duration_seconds ?? 0));
+    const periodOrder = Array.from(new Set(rows.map((row) => String(row.period_start ?? '')).filter(Boolean))).sort();
+    const ageBuckets = ['13-17', '18-24', '25-34', '35-44', '45-54', '55+'].filter((bucket) =>
+      rows.some((row) => String(row.age_bucket ?? '') === bucket)
+    );
+
+    const valueMap = new Map<string, number>();
+    rows.forEach((row) => {
+      const period = String(row.period_start ?? '');
+      const ageBucket = String(row.age_bucket ?? '');
+      const value = Number(row.avg_session_duration_seconds ?? 0);
+      if (!period || !ageBucket || !Number.isFinite(value)) {
+        return;
+      }
+      valueMap.set(`${period}__${ageBucket}`, value);
+    });
+
+    const labels = periodOrder.map((period) => formatPeriodLabel(period, timeGrain));
+    const series = ageBuckets.map((ageBucket, index) => ({
+      label: ageBucket,
+      data: periodOrder.map((period) => valueMap.get(`${period}__${ageBucket}`) ?? null),
+      color: ['#2f6f67', '#4d5f5c', '#7a8f59', '#8e6f4d', '#5a7fb0', '#9a5f7a'][index % 6],
+      showMark: false
+    }));
 
     return (
       <LineChart
         xAxis={[{ data: labels, scaleType: 'point' }]}
         yAxis={[{ valueFormatter: (v: number) => `${compactNumber(Number(v))}s` }]}
-        series={[{ data: values, label: 'Avg Session', color: '#2f6f67' }]}
+        series={series}
         axisHighlight={{ x: 'line', y: 'line' }}
+        slotProps={{ tooltip: { trigger: 'axis' } }}
+        slots={{ tooltip: ChartsTooltip }}
       />
     );
   }
 
   if (report === 'genreTrend') {
-    const labels = rows.map((row) => formatPeriodLabel(String(row.period_start ?? ''), timeGrain));
-    const values = rows.map((row) => Number(row.watch_time_seconds ?? 0));
+    const periodOrder = Array.from(new Set(rows.map((row) => String(row.period_start ?? '')).filter(Boolean))).sort();
+    const totalsByGenre = new Map<string, number>();
+    rows.forEach((row) => {
+      const genreName = String(row.genre_name ?? '');
+      const value = Number(row.watch_time_seconds ?? 0);
+      if (!genreName || !Number.isFinite(value)) {
+        return;
+      }
+      totalsByGenre.set(genreName, (totalsByGenre.get(genreName) ?? 0) + value);
+    });
+
+    const topGenres = Array.from(totalsByGenre.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name]) => name);
+
+    const valueMap = new Map<string, number>();
+    rows.forEach((row) => {
+      const period = String(row.period_start ?? '');
+      const genreName = String(row.genre_name ?? '');
+      const value = Number(row.watch_time_seconds ?? 0);
+      if (!period || !genreName || !Number.isFinite(value) || !topGenres.includes(genreName)) {
+        return;
+      }
+      valueMap.set(`${period}__${genreName}`, value);
+    });
+
+    const labels = periodOrder.map((period) => formatPeriodLabel(period, timeGrain));
+    const series = topGenres.map((genreName, index) => ({
+      label: genreName,
+      data: periodOrder.map((period) => valueMap.get(`${period}__${genreName}`) ?? null),
+      color: ['#7a8f59', '#2f6f67', '#4d5f5c', '#8e6f4d', '#5a7fb0', '#9a5f7a'][index % 6],
+      showMark: false
+    }));
 
     return (
       <LineChart
         xAxis={[{ data: labels, scaleType: 'point' }]}
         yAxis={[{ valueFormatter: (v: number) => `${compactNumber(Number(v))}s` }]}
-        series={[{ data: values, label: 'Genre Watch Time', color: '#7a8f59' }]}
+        series={series}
         axisHighlight={{ x: 'line', y: 'line' }}
+        slotProps={{ tooltip: { trigger: 'axis' } }}
+        slots={{ tooltip: ChartsTooltip }}
       />
     );
   }
@@ -375,6 +453,8 @@ function buildChart(
         { data: engagement, label: 'Engagement', color: '#7a8f59' }
       ]}
       axisHighlight={{ x: 'line', y: 'line' }}
+      slotProps={{ tooltip: { trigger: 'axis' } }}
+      slots={{ tooltip: ChartsTooltip }}
     />
   );
 }
