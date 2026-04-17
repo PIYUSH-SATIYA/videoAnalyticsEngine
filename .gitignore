@@ -3,3 +3,5 @@ __pycache__/
 generated_data/
 .vite/
 .vite/*
+./backend/dist/*
+./backend/dist/
