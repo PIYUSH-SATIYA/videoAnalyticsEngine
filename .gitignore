@@ -2,4 +2,10 @@ __pycache__/
 .venv/
 generated_data/
 .vite/
+<<<<<<< HEAD
 .vite/*
+=======
+.vite/*
+./backend/dist/*
+./backend/dist/
+>>>>>>> fix/query-optimisations
