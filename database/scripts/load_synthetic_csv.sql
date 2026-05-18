@@ -1,8 +1,11 @@
+--:%s#\V/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data#/workspace/database/generated_data#g
+--ran this for dockerized environment
+--
 -- Bulk load synthetic CSV data into video analytics schema
 -- Target: MariaDB / MySQL
 --
 -- Default CSV paths assume outputs from scripts/generate_synthetic_data.py:
--- /home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/*.csv
+-- /workspace/database/generated_data/*.csv
 --
 -- If LOCAL is disabled in your environment, either:
 -- 1) enable local_infile in client/server, or
@@ -18,7 +21,7 @@ SET foreign_key_checks = 1;
 SET @max_user_id = NULL;
 
 -- USERS CSV columns: user_id,dob
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/users.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/users.csv'
 INTO TABLE users
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
@@ -40,7 +43,7 @@ SET @max_user_id = (SELECT MAX(user_id) FROM users);
 
 -- VIDEOS CSV columns: video_id
 -- uploader_id derived to map within loaded users range.
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/videos.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/videos.csv'
 INTO TABLE videos
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
@@ -61,7 +64,7 @@ SET
 
 -- DEVICES CSV columns:
 -- device_id,user_id,device_type,operating_system,browser,created_at
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/devices.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/devices.csv'
 INTO TABLE devices
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
@@ -71,7 +74,7 @@ IGNORE 1 LINES
 
 -- SESSIONS CSV columns:
 -- session_id,user_id,device_id,started_at,ended_at
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/sessions.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/sessions.csv'
 INTO TABLE sessions
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
@@ -82,7 +85,7 @@ IGNORE 1 LINES
 -- EVENTS CSV columns:
 -- event_id,session_id,video_id,event_type,event_timestamp
 -- playback_position_seconds and metadata are optional -> set NULL.
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/events.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/events.csv'
 INTO TABLE events
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'

@@ -1,0 +1,21 @@
+services:
+  mariadb:
+    image: mariadb:11
+
+    container_name: videoAnalytics-mariadb
+
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: pbsatiya
+      MYSQL_DATABASE: videoAnalytics
+
+    ports:
+      - "3306:3306"
+
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database:/workspace/database
+
+volumes:
+  mariadb_data:

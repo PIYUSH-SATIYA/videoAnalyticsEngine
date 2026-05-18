@@ -23,7 +23,7 @@ CREATE TEMPORARY TABLE _tmp_user_dob (
     dob     DATE
 );
 
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/users.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/users.csv'
 INTO TABLE _tmp_user_dob
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
@@ -40,7 +40,7 @@ DROP TEMPORARY TABLE _tmp_user_dob;
 -- ---------------------------------------------------------------
 -- Step 2: Insert genres
 -- ---------------------------------------------------------------
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/genres.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/genres.csv'
 INTO TABLE genre
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
@@ -54,7 +54,7 @@ SET
 -- ---------------------------------------------------------------
 -- Step 3: Insert video <-> genre mappings
 -- ---------------------------------------------------------------
-LOAD DATA LOCAL INFILE '/home/pbs/Desktop/projects/videoAnalyticsEngine/generated_data/video_genre.csv'
+LOAD DATA LOCAL INFILE '/workspace/database/generated_data/video_genre.csv'
 INTO TABLE video_genre
 FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
